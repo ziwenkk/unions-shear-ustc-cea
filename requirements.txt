@@ -1,6 +1,7 @@
 importlib_metadata==3.1.1
 astropy
 numpy
+pyccl
 statsmodels
 matplotlib
 treecorr
