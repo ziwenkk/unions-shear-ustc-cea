@@ -24,7 +24,9 @@ from astropy.io import ascii
 from astropy.table import Table 
 
 from unions_wl import sample
+
 from sp_validation import util
+from sp_validation import plots
 
 
 def params_default():
@@ -54,9 +56,7 @@ def params_default():
 
     help_strings = {
         'input_path': 'catalogue input path, default={}',
-        'key_ra': 'column name for right ascension, default={}',
-        'key_dec': 'column name for declination, default={}',
-        'n_spit': 'number of equi-populated bins on output, default={}',
+        'n_split': 'number of equi-populated bins on output, default={}',
         'n_bin_z_hist': 'number of bins for redshift histogram, default={}',
         'output_dir': 'output directory, default={}',
     }
@@ -135,13 +135,152 @@ def main(argv=None):
     # Open input catalogue
     if params['verbose']:
         print(f'Reading catalogue {params["input_path"]}...')
-    dat = ascii.read(f'{path_to_data}/{cat_name}', names=names)
+    names = [
+        params['key_ra'],
+        params['key_dec'],
+        params['key_z'],
+        params['key_logM'],
+    ]
+    dat = ascii.read(f'{params["input_path"]}', names=names)
 
     # To split into more equi-populated bins, compute cumulative distribution function
-    cdf = ECDF(dat['logM'])
+    if params['verbose']:
+        print(f'Computing cdf({params["key_logM"]})...')
+    cdf = ECDF(dat[params['key_logM']])
 
     # Split into two (check whether we get median from before)
     logM_bounds = sample.y_equi(cdf, params['n_split'])
+
+    # Add min and max to boundaries
+    logM_bounds.insert(0, min(dat[params['key_logM']]))
+    logM_bounds.append(max(dat[params['key_logM']]))
+
+    # Create masks to select mass bins
+    mask_list = []
+    labels = []
+    for idx in range(len(logM_bounds) - 1):
+        label = f'{logM_bounds[idx]} <= logM < {logM_bounds[idx + 1]}'
+        labels.append(label)
+        if params['verbose']:
+            print(
+                f'Creating sample #{idx+1}/{params["n_split"]} with {label}'
+            )
+        mask = (
+            (dat[params['key_logM']] >= logM_bounds[idx])
+            & (dat[params['key_logM']] < logM_bounds[idx + 1])
+        )
+        mask_list.append(mask)
+
+    if not os.path.exists(params['output_dir']):
+        os.mkdir(params['output_dir'])
+
+    # Plot mass histograms
+    xs = []
+    n_bin = 100
+    for mask in mask_list:
+        xs.append(dat[params['key_logM']][mask])
+    plots.plot_histograms(
+        xs,
+        labels,
+        'AGN SMBH mass distribution',
+        r'$\log ( M_\ast / M_\odot )$',
+        'frequency',
+        [min(dat[params['key_logM']]), max(dat[params['key_logM']])],
+        int(n_bin / params['n_split']),
+        f'{params["output_dir"]}/hist_{params["key_logM"]}.pdf',
+    )
+
+    # Add columns for weight for each sample
+    for idx in range(len(mask_list)):
+            dat[f'w_{idx}'] = np.ones_like(dat[params['key_z']])
+
+    # Assign weights according to local density in redshift histogram.
+
+    fac = 1.0001
+    z_min = min(dat['z']) / fac
+    z_max = max(dat['z']) * fac
+
+    z_centres_arr = []
+    z_hist_arr = []
+    for idx, mask in enumerate(mask_list):
+        
+        z_hist, z_edges = np.histogram(
+            dat['z'][mask],
+            bins=int(params['n_bin_z_hist'] / params['n_split']),
+            density=True,
+            range=(z_min, z_max),
+        )
+        z_centres = [(z_edges[i] + z_edges[i+1]) / 2 for i in range(len(z_edges) - 1)]
+
+        z_hist_arr.append(z_hist)
+        z_centres_arr.append(z_centres)
+    
+        # Plot histogram
+        plt.step(z_centres, z_hist, where='mid', label=idx)
+    
+        weights = np.ones_like(dat['z'][mask])
+
+        for idz, z in enumerate(dat['z'][mask]):
+            w = np.where(z > z_edges)[0]
+            if len(w) == 0:
+                print('Error:', z)
+            else:
+                idh = w[-1]
+            weights[idz] = 1 / z_hist[idh]
+
+        dat[f'w_{idx}'][mask] = weights
+    
+    # Plot original redshift histograms
+    plots.plot_data_1d(
+        z_centres_arr,
+        z_hist_arr,
+        [],
+        'AGN SMBH redshift distribution',
+        '$z$',
+        'frequency',
+        f'{params["output_dir"]}/hist_{params["key_z"]}.pdf',
+    )
+
+    # Plot reweighted redshift histograms, which should be flat
+    xs = []
+    ws = []
+    for idx, mask in enumerate(mask_list):
+        dat_mask = dat[mask]
+        xs.append(dat_mask[params['key_z']])
+        ws.append(dat_mask[f'w_{idx}'])
+
+    plots.plot_histograms(
+        xs,
+        labels,
+        'AGN SMBH reweighted redshift distribution',
+        '$z$',                                                                  
+        'frequency',                                                            
+        [z_min, z_max],
+        int(params['n_bin_z_hist'] / params['n_split']),
+        f'{params["output_dir"]}/hist_reweighted_{params["key_z"]}.pdf',
+        weights=ws,
+        density=True,
+    )
+
+    # Plot reweighted redshift histograms, which should be flat
+    xs = []
+    for idx, mask in enumerate(mask_list):
+        dat_mask = dat[mask]
+        xs.append(dat_mask[params['key_logM']])
+        ws.append(dat_mask[f'w_{idx}'])
+
+    plots.plot_histograms(
+        xs,
+        labels,
+        'AGN SMBH reweighted mass distribution',
+        r'$\log ( M_\ast / M_\odot )$',
+        'frequency',                                                            
+        [z_min, z_max],
+        int(params['n_bin_z_hist'] / params['n_split']),
+        f'{params["output_dir"]}/hist_reweighted_{params["key_z"]}.pdf',
+        weights=ws,
+        density=True,
+    )
 
     return 0
 
