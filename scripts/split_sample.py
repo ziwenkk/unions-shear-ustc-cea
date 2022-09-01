@@ -30,7 +30,20 @@ from sp_validation import plots
 
 
 def params_default():
+    """PARAMS DEFAULT
 
+    Return default parameter values and additional information
+    about type and command line options.
+
+    Returns
+    -------
+    list :
+        parameter dict
+        types if not default (``str``)
+        help string dict for command line option
+        short option letter dict
+
+    # Specify all parameter names and default values
     params = {
         'input_path': 'SDSS_SMBH_202206.txt',
         'key_ra': 'ra',
@@ -43,17 +56,13 @@ def params_default():
         'output_fname_base': 'SDSS_SMBH_202206',
     }
 
-    short_options = {
-        'input_path': '-i',
-        'n_split': '-n',
-        'output_dir': '-o',
-    }
-
+    # Parameters which are not the default, which is ``str``
     types = {
         'n_split': 'int',
         'n_bin_z_hist': 'int',
     }
 
+    # Parameters which can be specified as command line option
     help_strings = {
         'input_path': 'catalogue input path, default={}',
         'n_split': 'number of equi-populated bins on output, default={}',
@@ -61,6 +70,12 @@ def params_default():
         'output_dir': 'output directory, default={}',
     }
 
+    # Options which have one-letter shortcuts
+    short_options = {
+        'input_path': '-i',
+        'n_split': '-n',
+        'output_dir': '-o',
+    }
 
     return params, short_options, types, help_strings
 
