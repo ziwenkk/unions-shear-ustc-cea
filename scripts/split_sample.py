@@ -23,7 +23,7 @@ from statsmodels.distributions.empirical_distribution import ECDF
 from astropy.io import ascii
 from astropy.table import Table 
 
-from unions_wl import sample
+from unions_wl import catalogue as cat
 
 from sp_validation import util
 from sp_validation import plots
@@ -43,6 +43,7 @@ def params_default():
         help string dict for command line option
         short option letter dict
 
+    """
     # Specify all parameter names and default values
     params = {
         'input_path': 'SDSS_SMBH_202206.txt',
@@ -164,7 +165,7 @@ def main(argv=None):
     cdf = ECDF(dat[params['key_logM']])
 
     # Split into two (check whether we get median from before)
-    logM_bounds = sample.y_equi(cdf, params['n_split'])
+    logM_bounds = cat.y_equi(cdf, params['n_split'])
 
     # Add min and max to boundaries
     logM_bounds.insert(0, min(dat[params['key_logM']]))
@@ -256,7 +257,8 @@ def main(argv=None):
         f'{params["output_dir"]}/hist_{params["key_z"]}.pdf',
     )
 
-    # Plot reweighted redshift histograms, which should be flat
+    # Test: plot reweighted redshift histograms, which should be flat
+    # Prepare input
     xs = []
     ws = []
     for idx, mask in enumerate(mask_list):
@@ -264,6 +266,7 @@ def main(argv=None):
         xs.append(dat_mask[params['key_z']])
         ws.append(dat_mask[f'w_{idx}'])
 
+    # Plot
     plots.plot_histograms(
         xs,
         labels,
@@ -277,22 +280,24 @@ def main(argv=None):
         density=True,
     )
 
-    # Plot reweighted redshift histograms, which should be flat
+    # Plot reweighted mass histogram
+    # Prepare input
     xs = []
     for idx, mask in enumerate(mask_list):
         dat_mask = dat[mask]
         xs.append(dat_mask[params['key_logM']])
         ws.append(dat_mask[f'w_{idx}'])
 
+    # Plot
     plots.plot_histograms(
         xs,
         labels,
         'AGN SMBH reweighted mass distribution',
         r'$\log ( M_\ast / M_\odot )$',
         'frequency',                                                            
-        [z_min, z_max],
+        [min(dat[params['key_logM']]), max(dat[params['key_logM']])],
         int(params['n_bin_z_hist'] / params['n_split']),
-        f'{params["output_dir"]}/hist_reweighted_{params["key_z"]}.pdf',
+        f'{params["output_dir"]}/hist_reweighted_{params["key_logM"]}.pdf',
         weights=ws,
         density=True,
     )
