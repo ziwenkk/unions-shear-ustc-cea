@@ -119,9 +119,11 @@ def gamma_t_theo(
     n_nz = len(dndz_source[0])                                                  
     tracer_l = ccl.WeakLensingTracer(                                           
         cosmo,                                                                  
-        dndz=dndz_source,                                                       
-        n_samples=n_nz,                                                         
+        dndz=dndz_source,
     )                                                                           
+    
+    # Bug when adding this (documented) option:   
+    n_samples=n_nz,
                                                                                 
     # Angular cross-power spectrum                                              
     if ell is None:                                                             
