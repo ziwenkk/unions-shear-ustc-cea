@@ -19,7 +19,7 @@
 ## Contents
 
 1. [Requirements](#Requirements)
-1. [AGN-GGL](#AGN galaxy-galaxy lensing)
+1. [AGN-GGL](#AGN-galaxy-galaxy-lensing)
 1. [Management](#Management)
 1. [Deployment](#Deployment)
 1. [CosmoStat](#CosmoStat)
@@ -47,7 +47,7 @@ to create equi-populated mass sub-samples.
 
 ### Compute GGL
 
-Call
+Ignoring weights, use
 ```bash
 scripts/compute_ng_binned_samples.py --input_path_fg data_mass_sub/SDSS_SMBH_202206_0_n_split_2.fits --input_path_bg unions_shapepipe_2022_v1.0.fits --key_ra_fg ra --key_dec_fg dec -v --out_path data_mass_sub/ggl_agn_0.txt
 ```
