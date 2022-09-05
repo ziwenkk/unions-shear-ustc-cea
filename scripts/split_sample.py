@@ -20,13 +20,14 @@ import matplotlib.pylab as plt
 
 from statsmodels.distributions.empirical_distribution import ECDF
 
-from astropy.io import ascii
-from astropy.table import Table 
+from astropy.io import fits, ascii
+from astropy.table import Table
 
 from unions_wl import catalogue as cat
 
 from sp_validation import util
 from sp_validation import plots
+from sp_validation import cat as sp_cat
 
 
 def params_default():
@@ -219,7 +220,7 @@ def main(argv=None):
     z_centres_arr = []
     z_hist_arr = []
     for idx, mask in enumerate(mask_list):
-        
+
         z_hist, z_edges = np.histogram(
             dat['z'][mask],
             bins=int(params['n_bin_z_hist'] / params['n_split']),
@@ -230,10 +231,10 @@ def main(argv=None):
 
         z_hist_arr.append(z_hist)
         z_centres_arr.append(z_centres)
-    
+
         # Plot histogram
         plt.step(z_centres, z_hist, where='mid', label=idx)
-    
+
         weights = np.ones_like(dat['z'][mask])
 
         for idz, z in enumerate(dat['z'][mask]):
@@ -245,7 +246,7 @@ def main(argv=None):
             weights[idz] = 1 / z_hist[idh]
 
         dat[f'w_{idx}'][mask] = weights
-    
+
     # Plot original redshift histograms
     plots.plot_data_1d(
         z_centres_arr,
@@ -271,8 +272,8 @@ def main(argv=None):
         xs,
         labels,
         'AGN SMBH reweighted redshift distribution',
-        '$z$',                                                                  
-        'frequency',                                                            
+        '$z$',
+        'frequency',
         [z_min, z_max],
         int(params['n_bin_z_hist'] / params['n_split']),
         f'{params["output_dir"]}/hist_reweighted_{params["key_z"]}.pdf',
@@ -294,13 +295,35 @@ def main(argv=None):
         labels,
         'AGN SMBH reweighted mass distribution',
         r'$\log ( M_\ast / M_\odot )$',
-        'frequency',                                                            
+        'frequency',
         [min(dat[params['key_logM']]), max(dat[params['key_logM']])],
         int(params['n_bin_z_hist'] / params['n_split']),
         f'{params["output_dir"]}/hist_reweighted_{params["key_logM"]}.pdf',
         weights=ws,
         density=True,
     )
+
+    for idx, mask in enumerate(mask_list):
+        t = Table(dat[mask])
+        out_name = (
+            f'{params["output_dir"]}/{params["output_fname_base"]}'
+            + f'_{idx}_n_split_{params["n_split"]}.fits'
+        )
+        print(f'Writing catalogue {out_name}')
+
+        cols = []
+        for key in t.keys():
+            cols.append(fits.Column(name=key, array=t[key], format='E'))
+        sp_cat.write_fits_BinTable_file(cols, out_name)
+
+        #ascii.write(
+            #t,
+            #out_name,
+            #delimiter='\t',
+            #format='commented_header',
+            #overwrite=True
+        #)
+
 
     return 0
 
