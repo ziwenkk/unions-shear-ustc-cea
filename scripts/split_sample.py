@@ -54,7 +54,7 @@ def params_default():
         'key_logM': 'logM',
         'n_split': 2,
         'n_bin_z_hist': 100,
-        'output_dir': 'data_mass_sub',
+        'output_dir': '.',
         'output_fname_base': 'SDSS_SMBH_202206',
     }
 
@@ -315,15 +315,6 @@ def main(argv=None):
         for key in t.keys():
             cols.append(fits.Column(name=key, array=t[key], format='E'))
         sp_cat.write_fits_BinTable_file(cols, out_name)
-
-        #ascii.write(
-            #t,
-            #out_name,
-            #delimiter='\t',
-            #format='commented_header',
-            #overwrite=True
-        #)
-
 
     return 0
 

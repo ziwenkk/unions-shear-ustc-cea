@@ -43,13 +43,15 @@ def params_default():
         'key_dec_fg': 'DEC',
         'key_ra_bg': 'RA',
         'key_dec_bg': 'DEC',
+        'key_w_fg': None,
+        'key_w_bg': None,
         'key_e1': 'e1',
         'key_e2': 'e2',
         'sign_e1': +1,
-        'sign_e2': -1,
-        'theta_min': 0.5,
+        'sign_e2': +1,
+        'theta_min': 0.1,
         'theta_max': 200,
-        'n_theta': 20,
+        'n_theta': 10,
         'out_path' : './ggl_unions_sdss_matched.txt',
         'verbose': True,
     }
@@ -68,6 +70,8 @@ def params_default():
         'key_dec_fg': 'foreground declination column name, default={}',
         'key_ra_bg': 'background right ascension column name, default={}',
         'key_dec_bg': 'background declination column name, default={}',
+        'key_w_fg': 'foreground weight column name, default={}',
+        'key_w_bg': 'background weight column name, default={}',
         'key_e1': 'first ellipticity component column name, default={}',
         'key_e2': 'second ellipticity component column name, default={}',
         'sign_e1': 'first ellipticity multiplier (sign), default={}',
@@ -174,6 +178,7 @@ def main(argv=None):
             + f' ({params["sign_e1"]:+d}, {params["sign_e2"]:+d})'
         )
 
+    # Set fg and bg sample data columns
     g1 = {
         'fg': None,
         'bg': data[sample][params['key_e1']] * params['sign_e1']
@@ -182,10 +187,21 @@ def main(argv=None):
         'fg': None,
         'bg': data[sample][params['key_e2']] * params['sign_e2']
     }
-    w = {
-        'fg': None,
-        'bg': data[sample]['w'],
-    }
+    w = {}
+    for sample in ['fg', 'bg']:
+        n = len(data[sample][params[f'key_ra_{sample}']])
+        if params[f'key_w_{sample}'] is None:
+            w[sample] = [1] * n
+            if params['verbose']:
+                print(f'Not using weights for {sample} sample')
+        else:
+            w[sample] = data[sample][params[f'key_w_{sample}']]
+            if params['verbose']:
+                print(f'Using catalogs weights for {sample} sample')
+    for sample in ['fg', 'bg']:
+        print(sample, w[sample][:5])
+
+    # Create treecorr catalogue
     for sample in ('fg', 'bg'):
         cat[sample] = treecorr.Catalog(
             ra=data[sample][params[f'key_ra_{sample}']],
