@@ -132,6 +132,7 @@ def gamma_t_theo(
         n_ell = 1000                                                            
         ell = np.geomspace(ell_min, ell_max, num=n_ell)                         
                                                                                 
+    # to check: bias twice? 
     if not p_of_k:                                                              
         pk_gm = pk_gm_theo(cosmo, bias_1)                                       
     else:                                                                       

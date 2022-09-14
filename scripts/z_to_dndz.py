@@ -48,4 +48,3 @@ for nz_name, method in zip(nz_names, methods):
             np.column_stack((bins, n)),
             header='z dn_dz',
         )
-

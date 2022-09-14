@@ -196,6 +196,10 @@ def main(argv=None):
     n_bin = 100
     for mask in mask_list:
         xs.append(dat[params['key_logM']][mask])
+    out_name = (
+        f'{params["output_dir"]}'
+        + f'/hist_{params["key_logM"]}_n_split_{params["n_split"]}_u.pdf'
+    )
     plots.plot_histograms(
         xs,
         labels,
@@ -204,7 +208,7 @@ def main(argv=None):
         'frequency',
         [min(dat[params['key_logM']]), max(dat[params['key_logM']])],
         int(n_bin / params['n_split']),
-        f'{params["output_dir"]}/hist_{params["key_logM"]}.pdf',
+        out_name,
     )
 
     # Add columns for weight for each sample
@@ -219,6 +223,7 @@ def main(argv=None):
 
     z_centres_arr = []
     z_hist_arr = []
+    z_edges_arr = []
     for idx, mask in enumerate(mask_list):
 
         z_hist, z_edges = np.histogram(
@@ -227,10 +232,13 @@ def main(argv=None):
             density=True,
             range=(z_min, z_max),
         )
-        z_centres = [(z_edges[i] + z_edges[i+1]) / 2 for i in range(len(z_edges) - 1)]
+        z_centres = [
+            (z_edges[i] + z_edges[i+1]) / 2 for i in range(len(z_edges) - 1)
+        ]
 
         z_hist_arr.append(z_hist)
         z_centres_arr.append(z_centres)
+        z_edges_arr.append(z_edges)
 
         # Plot histogram
         plt.step(z_centres, z_hist, where='mid', label=idx)
@@ -248,6 +256,10 @@ def main(argv=None):
         dat[f'w_{idx}'][mask] = weights
 
     # Plot original redshift histograms
+    out_name = (
+        f'{params["output_dir"]}'
+        + f'/hist_{params["key_z"]}_n_split_{params["n_split"]}_u.pdf'
+    )
     plots.plot_data_1d(
         z_centres_arr,
         z_hist_arr,
@@ -255,8 +267,26 @@ def main(argv=None):
         'AGN SMBH redshift distribution',
         '$z$',
         'frequency',
-        f'{params["output_dir"]}/hist_{params["key_z"]}.pdf',
+        out_name,
     )
+
+    # Save original redshift histogram to ASCII file
+    for idx, mask in enumerate(mask_list):
+        out_name = (
+            f'{params["output_dir"]}/hist_{params["key_z"]}'
+            + f'_{idx}_n_split_{params["n_split"]}_u.txt'
+        )
+        if params['verbose']:
+            print(
+                f'Writing redshift histogram #{idx+1}/{params["n_split"]}'
+                f' to {out_name}'
+            )
+        z_hist_0 = np.append(z_hist_arr[idx], 0)
+        np.savetxt(
+            out_name,
+            np.column_stack((z_edges_arr[idx], z_hist_0)),
+            header='z dn_dz',
+        )
 
     # Test: plot reweighted redshift histograms, which should be flat
     # Prepare input
@@ -268,7 +298,11 @@ def main(argv=None):
         ws.append(dat_mask[f'w_{idx}'])
 
     # Plot
-    plots.plot_histograms(
+    out_name = (
+        f'{params["output_dir"]}'
+        + f'/hist_{params["key_z"]}_n_split_{params["n_split"]}_w.pdf'
+    )
+    z_hist_rew_arr, z_edges_rew_arr = plots.plot_histograms(
         xs,
         labels,
         'AGN SMBH reweighted redshift distribution',
@@ -276,10 +310,29 @@ def main(argv=None):
         'frequency',
         [z_min, z_max],
         int(params['n_bin_z_hist'] / params['n_split']),
-        f'{params["output_dir"]}/hist_reweighted_{params["key_z"]}.pdf',
+        out_name,
         weights=ws,
         density=True,
     )
+
+    # Save reweighted redshift histogram (= flat) to ASCII file
+    for idx, mask in enumerate(mask_list):
+        out_name = (
+            f'{params["output_dir"]}/hist_{params["key_z"]}'
+            + f'_{idx}_n_split_{params["n_split"]}_w.txt'
+        )
+        if params['verbose']:
+            print(
+                f'Writing reweighted redshift histogram'
+                + f' #{idx+1}/{params["n_split"]}'
+                f' to {out_name}'
+            )
+        z_hist_rew_0 = np.append(z_hist_rew_arr[idx], 0)
+        np.savetxt(
+            out_name,
+            np.column_stack((z_edges_rew_arr[idx], z_hist_rew_0)),
+            header='z dn_dz',
+        )
 
     # Plot reweighted mass histogram
     # Prepare input
@@ -290,6 +343,10 @@ def main(argv=None):
         ws.append(dat_mask[f'w_{idx}'])
 
     # Plot
+    out_name = (
+        f'{params["output_dir"]}'
+        + f'/hist_{params["key_logM"]}_n_split_{params["n_split"]}_w.pdf'
+    )
     plots.plot_histograms(
         xs,
         labels,
@@ -298,7 +355,7 @@ def main(argv=None):
         'frequency',
         [min(dat[params['key_logM']]), max(dat[params['key_logM']])],
         int(params['n_bin_z_hist'] / params['n_split']),
-        f'{params["output_dir"]}/hist_reweighted_{params["key_logM"]}.pdf',
+        out_name,
         weights=ws,
         density=True,
     )
