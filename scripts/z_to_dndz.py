@@ -1,3 +1,17 @@
+#!/usr/bin/env python3
+
+"""z_to_dndz.py
+
+Transform (SOM-based) redshift sample galaxy data (FITS format)
+to (COSMOSIS-readable) redshift histogram ASCII file.
+
+:Authors: Lisa Goh
+          Martin Kilbinger <martin.kilbinger@cea.fr>
+
+:Date: 2022
+
+"""
+
 import numpy as np
 from astropy.io import fits
 import matplotlib.pylab as plt
