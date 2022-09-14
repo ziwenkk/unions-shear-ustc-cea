@@ -119,9 +119,11 @@ def gamma_t_theo(
     n_nz = len(dndz_source[0])                                                  
     tracer_l = ccl.WeakLensingTracer(                                           
         cosmo,                                                                  
-        dndz=dndz_source,                                                       
-        n_samples=n_nz,                                                         
+        dndz=dndz_source,
     )                                                                           
+    
+    # Bug when adding this (documented) option:   
+    n_samples=n_nz,
                                                                                 
     # Angular cross-power spectrum                                              
     if ell is None:                                                             
@@ -130,6 +132,7 @@ def gamma_t_theo(
         n_ell = 1000                                                            
         ell = np.geomspace(ell_min, ell_max, num=n_ell)                         
                                                                                 
+    # to check: bias twice? 
     if not p_of_k:                                                              
         pk_gm = pk_gm_theo(cosmo, bias_1)                                       
     else:                                                                       
